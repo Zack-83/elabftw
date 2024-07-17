@@ -1,4 +1,5 @@
-<?php declare(strict_types=1);
+<?php
+
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -7,10 +8,13 @@
  * @package elabftw
  */
 
+declare(strict_types=1);
+
 namespace Elabftw\Models;
 
 use Elabftw\Elabftw\Metadata;
 use Elabftw\Elabftw\Tools;
+use Elabftw\Enums\Action;
 use Elabftw\Enums\BasePermissions;
 use Elabftw\Enums\EntityType;
 use Elabftw\Exceptions\ImproperActionException;
@@ -24,18 +28,16 @@ class Experiments extends AbstractConcreteEntity
 {
     use InsertTagsTrait;
 
-    public function __construct(Users $users, ?int $id = null)
+    public function __construct(Users $users, ?int $id = null, ?bool $bypassReadPermission = null)
     {
-        $this->page = EntityType::Experiments->value;
-        $this->type = EntityType::Experiments->value;
         $this->entityType = EntityType::Experiments;
-        parent::__construct($users, $id);
+        parent::__construct($users, $id, $bypassReadPermission);
     }
 
     public function create(int $template = -1, array $tags = array()): int
     {
         $Templates = new Templates($this->Users);
-        $Teams = new Teams($this->Users);
+        $Teams = new Teams($this->Users, $this->Users->team);
         $teamConfigArr = $Teams->readOne();
         $Status = new ExperimentsStatus($Teams);
 
@@ -98,19 +100,20 @@ class Experiments extends AbstractConcreteEntity
             VALUES(:team, :title, CURDATE(), :body, :category, :status, :elabid, :canread, :canwrite, :metadata, :custom_id, :userid, :content_type)';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':team', $this->Users->team, PDO::PARAM_INT);
-        $req->bindParam(':title', $title, PDO::PARAM_STR);
-        $req->bindParam(':body', $body, PDO::PARAM_STR);
-        $req->bindValue(':category', $category, PDO::PARAM_INT);
-        $req->bindValue(':status', $status, PDO::PARAM_INT);
-        $req->bindValue(':elabid', Tools::generateElabid(), PDO::PARAM_STR);
-        $req->bindParam(':canread', $canread, PDO::PARAM_STR);
-        $req->bindParam(':canwrite', $canwrite, PDO::PARAM_STR);
-        $req->bindParam(':metadata', $metadata, PDO::PARAM_STR);
+        $req->bindParam(':title', $title);
+        $req->bindParam(':body', $body);
+        $req->bindValue(':category', $category);
+        $req->bindValue(':status', $status);
+        $req->bindValue(':elabid', Tools::generateElabid());
+        $req->bindParam(':canread', $canread);
+        $req->bindParam(':canwrite', $canwrite);
+        $req->bindParam(':metadata', $metadata);
         $req->bindParam(':custom_id', $customId, PDO::PARAM_INT);
         $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
         $req->bindParam(':content_type', $contentType, PDO::PARAM_INT);
         $this->Db->execute($req);
         $newId = $this->Db->lastInsertId();
+        $this->setId($newId);
 
         // insert the tags, steps and links from the template
         if ($template > 0) {
@@ -118,6 +121,7 @@ class Experiments extends AbstractConcreteEntity
             $Tags->copyTags($newId, true);
             $this->Steps->duplicate($template, $newId, true);
             $this->ItemsLinks->duplicate($template, $newId, true);
+            $Templates->Uploads->duplicate($this);
         }
 
         $this->insertTags($tags, $newId);
@@ -130,7 +134,7 @@ class Experiments extends AbstractConcreteEntity
      *
      * @return int the ID of the new item
      */
-    public function duplicate(): int
+    public function duplicate(bool $copyFiles = false): int
     {
         $this->canOrExplode('read');
 
@@ -144,31 +148,39 @@ class Experiments extends AbstractConcreteEntity
         // handle the blank_value_on_duplicate attribute on extra fields
         $metadata = (new Metadata($this->entityData['metadata']))->blankExtraFieldsValueOnDuplicate();
         // figure out the custom id
-        $customId = $this->getNextCustomId((int) $this->entityData['category']);
+        $customId = $this->getNextCustomId($this->entityData['category']);
 
         $sql = 'INSERT INTO experiments(team, title, date, body, category, status, elabid, canread, canwrite, userid, metadata, custom_id, content_type)
             VALUES(:team, :title, CURDATE(), :body, :category, :status, :elabid, :canread, :canwrite, :userid, :metadata, :custom_id, :content_type)';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':team', $this->Users->team, PDO::PARAM_INT);
-        $req->bindParam(':title', $title, PDO::PARAM_STR);
-        $req->bindParam(':body', $this->entityData['body'], PDO::PARAM_STR);
+        $req->bindParam(':title', $title);
+        $req->bindParam(':body', $this->entityData['body']);
         $req->bindValue(':category', $this->entityData['category']);
         $req->bindValue(':status', $Status->getDefault(), PDO::PARAM_INT);
-        $req->bindValue(':elabid', Tools::generateElabid(), PDO::PARAM_STR);
-        $req->bindParam(':canread', $this->entityData['canread'], PDO::PARAM_STR);
-        $req->bindParam(':canwrite', $this->entityData['canwrite'], PDO::PARAM_STR);
-        $req->bindParam(':metadata', $metadata, PDO::PARAM_STR);
+        $req->bindValue(':elabid', Tools::generateElabid());
+        $req->bindParam(':canread', $this->entityData['canread']);
+        $req->bindParam(':canwrite', $this->entityData['canwrite']);
+        $req->bindParam(':metadata', $metadata);
         $req->bindParam(':custom_id', $customId, PDO::PARAM_INT);
         $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
         $req->bindParam(':content_type', $this->entityData['content_type'], PDO::PARAM_INT);
         $this->Db->execute($req);
         $newId = $this->Db->lastInsertId();
+        $fresh = new self($this->Users, $newId);
         /** @psalm-suppress PossiblyNullArgument
          * this->id cannot be null here, checked during canOrExplode */
         $this->ExperimentsLinks->duplicate($this->id, $newId);
         $this->ItemsLinks->duplicate($this->id, $newId);
         $this->Steps->duplicate($this->id, $newId);
         $this->Tags->copyTags($newId);
+        // also add a link to the previous experiment
+        $ExperimentsLinks = new ExperimentsLinks($fresh);
+        $ExperimentsLinks->setId($this->id);
+        $ExperimentsLinks->postAction(Action::Create, array());
+        if ($copyFiles) {
+            $this->Uploads->duplicate($fresh);
+        }
 
         return $newId;
     }
@@ -180,18 +192,5 @@ class Experiments extends AbstractConcreteEntity
     {
         // delete from pinned too
         return parent::destroy() && $this->Pins->cleanup();
-    }
-
-    protected function getNextCustomId(int $category): ?int
-    {
-        $sql = 'SELECT custom_id FROM experiments WHERE custom_id IS NOT NULL AND category = :category ORDER BY custom_id DESC LIMIT 1';
-        $req = $this->Db->prepare($sql);
-        $req->bindParam(':category', $category, PDO::PARAM_INT);
-        $this->Db->execute($req);
-        $res = $req->fetch();
-        if ($res === false || $res['custom_id'] === null) {
-            return null;
-        }
-        return ++$res['custom_id'];
     }
 }

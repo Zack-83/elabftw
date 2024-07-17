@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -9,9 +11,11 @@
 
 namespace Elabftw\Models;
 
-use function date;
 use Elabftw\Enums\Action;
+
 use Elabftw\Services\Check;
+
+use function date;
 
 class ItemsTest extends \PHPUnit\Framework\TestCase
 {
@@ -19,7 +23,7 @@ class ItemsTest extends \PHPUnit\Framework\TestCase
 
     protected function setUp(): void
     {
-        $this->Items= new Items(new Users(1, 1));
+        $this->Items = new Items(new Users(1, 1));
     }
 
     public function testCreateAndDestroy(): void
@@ -50,6 +54,26 @@ class ItemsTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('<p>Body</p>', $entityData['body']);
     }
 
+    public function testReadBookable(): void
+    {
+        $this->assertIsArray($this->Items->readBookable());
+    }
+
+    public function testCanBookInPast(): void
+    {
+        // use a normal user
+        $Items = new Items(new Users(2, 1));
+        $new = $Items->create(1);
+        $Items->setId($new);
+        $Items->patch(Action::Update, array('book_users_can_in_past' => '1'));
+        $this->assertTrue($Items->canBookInPast());
+        $Items->patch(Action::Update, array('book_users_can_in_past' => '0'));
+        $this->assertFalse($Items->canBookInPast());
+        // now as admin
+        $this->Items->setId($new);
+        $this->assertTrue($this->Items->canBookInPast());
+    }
+
     public function testDuplicate(): void
     {
         $this->Items->setId(1);
@@ -63,7 +87,7 @@ class ItemsTest extends \PHPUnit\Framework\TestCase
         $this->Items->setId($new);
 
         // lock
-        $item =$this->Items->toggleLock();
+        $item = $this->Items->toggleLock();
         $this->assertTrue((bool) $item['locked']);
         // unlock
         $item = $this->Items->toggleLock();

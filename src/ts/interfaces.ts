@@ -42,11 +42,29 @@ interface CheckableItem {
   randomid: number;
 }
 
+interface Selected {
+  experiments_categories: number[];
+  experiments_status: number[];
+  items_status: number[];
+  items_types: number[];
+  tags: number[];
+  users: number[];
+  can: string;
+}
+
 enum Method {
   GET = 'GET',
   POST = 'POST',
   PATCH = 'PATCH',
   DELETE = 'DELETE',
+}
+
+enum ProcurementState {
+  Pending = 10,
+  Validated = 20,
+  PartiallyReceived = 30,
+  Received = 40,
+  Archived = 50,
 }
 
 enum Action {
@@ -63,15 +81,22 @@ enum Action {
   Deduplicate = 'deduplicate',
   Disable2fa = 'disable2fa',
   Duplicate = 'duplicate',
+  ExclusiveEditMode = 'exclusiveeditmode',
+  Finish = 'finish',
   Lock = 'lock',
+  Notif = 'notif',
   PatchUser2Team = 'patchuser2team',
   Pin = 'pin',
+  RemoveExclusiveEditMode = 'removeexclusiveeditmode',
   Replace = 'replace',
+  RequestAction = 'requestaction',
+  SendOnboardingEmails = 'sendonboardingemails',
+  Sign = 'sign',
   Timestamp = 'timestamp',
+  Unreference = 'unreference',
+  UpdateMetadataField = 'updatemetadatafield',
   UpdatePassword = 'updatepassword',
   UpdateTag = 'updatetag',
-  UpdateMetadataField = 'updatemetadatafield',
-  Unreference = 'unreference',
   Validate = 'validate',
 }
 
@@ -87,10 +112,10 @@ enum Model {
   ExperimentsCategories = 'experiments_categories',
   ExperimentsStatus = 'experiments_status',
   ExtraFieldsKeys = 'extra_fields_keys',
+  Sigkeys = 'sig_keys',
   Step = 'steps',
   Tag = 'tags',
   Team = 'teams',
-  TeamTags = 'team_tags',
   TeamGroup = 'teamgroups',
   Todolist = 'todolist',
   UnfinishedSteps = 'unfinishedsteps',
@@ -123,8 +148,11 @@ enum Target {
   Member = 'member',
   Metadata = 'metadata',
   MetadataField = 'metadatafield',
+  Passphrase = 'passphrase',
   Rating = 'rating',
   RealName = 'real_name',
+  Sigkey = 'sigkeys',
+  State = 'state',
   Title = 'title',
   UserId = 'userid',
 }
@@ -138,10 +166,12 @@ export {
   Action,
   Categories,
   CheckableItem,
+  Selected,
   Entity,
   EntityType,
   Method,
   Model,
+  ProcurementState,
   ResponseMsg,
   Target,
   Todoitem,

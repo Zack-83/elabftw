@@ -1,4 +1,5 @@
-<?php declare(strict_types=1);
+<?php
+
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012 Nicolas CARPi
@@ -6,6 +7,8 @@
  * @license AGPL-3.0
  * @package elabftw
  */
+
+declare(strict_types=1);
 
 namespace Elabftw\Elabftw;
 
@@ -15,6 +18,7 @@ use Elabftw\Models\Config;
 use Elabftw\Services\ResetPasswordKey;
 use Exception;
 use Symfony\Component\HttpFoundation\Response;
+
 use function time;
 
 /**
@@ -42,8 +46,8 @@ try {
     $passwordComplexity = PasswordComplexity::from((int) $App->Config->configArr['password_complexity_requirement']);
     $renderArr = array(
         'key' => $App->Request->query->getAlnum('key'),
-        'passwordInputHelp' => PasswordComplexity::toHuman($passwordComplexity),
-        'passwordInputPattern' => PasswordComplexity::toPattern($passwordComplexity),
+        'passwordInputHelp' => $passwordComplexity->toHuman(),
+        'passwordInputPattern' => $passwordComplexity->toPattern(),
     );
 } catch (Exception $e) {
     $template = 'error.html';

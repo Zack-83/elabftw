@@ -1,4 +1,5 @@
-<?php declare(strict_types=1);
+<?php
+
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2023 Nicolas CARPi
@@ -6,6 +7,8 @@
  * @license AGPL-3.0
  * @package elabftw
  */
+
+declare(strict_types=1);
 
 namespace Elabftw\Factories;
 
@@ -15,6 +18,7 @@ use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\MailableInterface;
 use Elabftw\Models\Notifications\CommentCreated;
 use Elabftw\Models\Notifications\EventDeleted;
+use Elabftw\Models\Notifications\OnboardingEmail;
 use Elabftw\Models\Notifications\SelfIsValidated;
 use Elabftw\Models\Notifications\SelfNeedValidation;
 use Elabftw\Models\Notifications\StepDeadline;
@@ -36,13 +40,14 @@ class NotificationsFactory
     public function getMailable(): MailableInterface
     {
         return match (Notifications::from($this->category)) {
-            Notifications::CommentCreated => new CommentCreated($this->body['experiment_id'], $this->body['commenter_userid']),
+            Notifications::CommentCreated => new CommentCreated($this->body['page'], $this->body['entity_id'], $this->body['commenter_userid']),
             Notifications::UserCreated => new UserCreated($this->body['userid'], $this->body['team']),
             Notifications::UserNeedValidation => new UserNeedValidation($this->body['userid'], $this->body['team']),
             Notifications::StepDeadline => new StepDeadline($this->body['step_id'], $this->body['entity_id'], $this->body['entity_page'], $this->body['deadline']),
             Notifications::EventDeleted => new EventDeleted($this->body['event'], $this->body['actor'], $this->body['msg'], EmailTarget::from($this->body['target'])),
             Notifications::SelfNeedValidation => new SelfNeedValidation(),
             Notifications::SelfIsValidated => new SelfIsValidated(),
+            Notifications::OnboardingEmail => new OnboardingEmail($this->body['team'], $this->body['forAdmin'] ?? false),
             default => throw new ImproperActionException('This notification is not mailable.'),
         };
     }

@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 /**
  * @author Nicolas CARPi <nico-git@deltablot.email>
  * @copyright 2012, 2022 Nicolas CARPi
@@ -9,9 +11,8 @@
 
 namespace Elabftw\Elabftw;
 
-use function dirname;
-
 use Elabftw\Auth\Local;
+
 use Elabftw\Controllers\LoginController;
 use Elabftw\Enums\Action;
 use Elabftw\Exceptions\DatabaseErrorException;
@@ -22,6 +23,8 @@ use Elabftw\Services\Filter;
 use Elabftw\Services\MfaHelper;
 use Exception;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+
+use function dirname;
 
 /**
  * Deal with requests sent from the user control panel
@@ -36,7 +39,7 @@ try {
     throw new ImproperActionException('This feature is disabled for the demo.');
     // END DEMO DISABLE ALL
     // TAB 2 : ACCOUNT
-    if ($App->Request->request->has('use_mfa')) {
+    if ($App->Request->request->getString('origin') === 'ucp_tab_2') {
         $tab = 2;
         // if user is authenticated through external service we skip the password verification
         if ($App->Users->userData['auth_service'] === LoginController::AUTH_LOCAL) {
@@ -49,7 +52,7 @@ try {
 
         // CHANGE PASSWORD (only for local accounts)
         if (!empty($App->Request->request->getString('password'))
-            && (int) $App->Users->userData['auth_service'] === LoginController::AUTH_LOCAL
+            && $App->Users->userData['auth_service'] === LoginController::AUTH_LOCAL
         ) {
             $App->Users->patch(Action::UpdatePassword, $postData);
         }
