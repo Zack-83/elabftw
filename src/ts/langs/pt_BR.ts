@@ -16,7 +16,7 @@ const t = {
     "filename": "Nome do arquivo",
     "generic-delete-warning": "Deletar isso aqui?",
     "link-delete-warning": "Deletar este link?",
-    "new-apikey-warning": "Esta é a única vez que a chave será exibida! Não se esqueça de guardá-la em um local seguro, pois você não poderá vê-la novamente:",
+    "multi-changes-confirm": "Apply to {{num, number}} entries?",
     "no-self-links": "Não é permitido vincular um item a ele mesmo. Selecione um destino diferente.",
     "not-set": "Não definido",
     "nothing-selected": "Nada foi selecionado!",

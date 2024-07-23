@@ -16,7 +16,7 @@ const t = {
     "filename": "Název souboru",
     "generic-delete-warning": "Vymazat to?",
     "link-delete-warning": "Smazat tento odkaz?",
-    "new-apikey-warning": "Toto je jediný okamžik, kdy se klíč zobrazí! Nezapomeňte si ho zkopírovat na bezpečné místo, protože už ho nebudete moci vidět:",
+    "multi-changes-confirm": "Apply to {{num, number}} entries?",
     "no-self-links": "Propojení položky se sebou samou není povoleno. Vyberte prosím jiný cíl.",
     "not-set": "Nenastavený",
     "nothing-selected": "Nic není vybráno!",

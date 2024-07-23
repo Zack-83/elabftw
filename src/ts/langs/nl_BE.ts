@@ -16,7 +16,7 @@ const t = {
     "filename": "Bestandsnaam",
     "generic-delete-warning": "Dit verwijderen?",
     "link-delete-warning": "Deze link verwijderen?",
-    "new-apikey-warning": "Dit is de enige keer dat de sleutel wordt getoond! Zorg ervoor dat u het op een veilige plek bewaard, want u kunt het niet meer zien:",
+    "multi-changes-confirm": "Apply to {{num, number}} entries?",
     "no-self-links": "Het koppelen van een item aan zichzelf is niet toegestaan. Selecteer een andere target.",
     "not-set": "Niet ingesteld",
     "nothing-selected": "Niets geselecteerd!",
