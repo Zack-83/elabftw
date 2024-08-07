@@ -244,6 +244,7 @@ class LoginController implements ControllerInterface
                     $ldapPassword = Crypto::decrypt($c['ldap_password'], Key::loadFromAsciiSafeString(Config::fromEnv('SECRET_KEY')));
                 }
                 $ldapConfig = array(
+                    'protocol' => $c['ldap_scheme'] . '://',
                     'hosts' => array($c['ldap_host']),
                     'port' => (int) $c['ldap_port'],
                     'base_dn' => $c['ldap_base_dn'],
@@ -274,7 +275,7 @@ class LoginController implements ControllerInterface
                 // AUTH WITH SAML
             case 'saml':
                 $this->App->Session->set('auth_service', self::AUTH_SAML);
-                $IdpsHelper = new IdpsHelper($this->App->Config, new Idps());
+                $IdpsHelper = new IdpsHelper($this->App->Config, new Idps($this->App->Users));
                 $idpId = $this->App->Request->request->getInt('idpId');
                 // No cookie is required anymore, as entity Id is extracted from response
                 $settings = $IdpsHelper->getSettings($idpId);

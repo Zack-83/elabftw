@@ -176,17 +176,17 @@ CREATE TABLE `experiments_comments` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `experiments_links`
+-- Table structure for table `experiments2items`
 --
 
-CREATE TABLE `experiments_links` (
+CREATE TABLE `experiments2items` (
   `item_id` int(10) UNSIGNED NOT NULL,
   `link_id` int(10) UNSIGNED NOT NULL,
   PRIMARY KEY (`item_id`, `link_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 --
--- RELATIONSHIPS FOR TABLE `experiments_links`:
+-- RELATIONSHIPS FOR TABLE `experiments2items`:
 --   `item_id`
 --       `experiments` -> `id`
 --   `link_id`
@@ -504,6 +504,7 @@ CREATE TABLE `idps` (
   `x509` text NOT NULL,
   `x509_new` text NOT NULL,
   `enabled` tinyint UNSIGNED NOT NULL DEFAULT 1,
+  `source` tinyint UNSIGNED NULL DEFAULT NULL,
   `email_attr` varchar(255) NOT NULL,
   `team_attr` varchar(255) NULL DEFAULT NULL,
   `fname_attr` varchar(255) NULL DEFAULT NULL,
@@ -512,9 +513,22 @@ CREATE TABLE `idps` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
+-- --------------------------------------------------------
+
 --
--- RELATIONSHIPS FOR TABLE `idps`:
+-- Table structure for table `idps_sources`
 --
+
+CREATE TABLE `idps_sources` (
+  `id` int UNSIGNED NOT NULL AUTO_INCREMENT,
+  `url` TEXT NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `auto_refresh` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `last_fetched_at` timestamp NULL DEFAULT NULL,
+  `enabled` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_url` (`url`(255))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -745,10 +759,10 @@ CREATE TABLE `items_types_changelog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
--- Table structure for table `items_types_links`
+-- Table structure for table `items_types2items`
 --
 
-CREATE TABLE `items_types_links` (
+CREATE TABLE `items_types2items` (
   `item_id` int UNSIGNED NOT NULL,
   `link_id` int UNSIGNED NOT NULL,
   PRIMARY KEY (`item_id`, `link_id`)
@@ -1310,6 +1324,25 @@ CREATE TABLE `items2experiments` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `items_types2experiments`
+--
+CREATE TABLE `items_types2experiments` (
+  `item_id` int UNSIGNED NOT NULL,
+  `link_id` int UNSIGNED NOT NULL,
+  PRIMARY KEY (`item_id`, `link_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- RELATIONSHIPS FOR TABLE `items_types2experiments`:
+--   `item_id`
+--       `items_types` -> `id`
+--   `link_id`
+--       `experiments` -> `id`
+--
+
+-- --------------------------------------------------------
+
+--
 -- Indexes for table `api_keys`
 --
 ALTER TABLE `api_keys`
@@ -1332,11 +1365,11 @@ ALTER TABLE `experiments_comments`
   ADD KEY `fk_experiments_comments_users_userid` (`userid`);
 
 --
--- Indexes for table `experiments_links`
+-- Indexes for table `experiments2items`
 --
-ALTER TABLE `experiments_links`
-  ADD KEY `fk_experiments_links_experiments_id` (`item_id`),
-  ADD KEY `fk_experiments_links_items_id` (`link_id`);
+ALTER TABLE `experiments2items`
+  ADD KEY `fk_experiments2items_experiments_id` (`item_id`),
+  ADD KEY `fk_experiments2items_items_id` (`link_id`);
 
 --
 -- Indexes for table `experiments_steps`
@@ -1425,11 +1458,11 @@ ALTER TABLE `items_types_changelog`
   ADD CONSTRAINT `fk_items_types_changelog2users_userid` FOREIGN KEY (`users_id`) REFERENCES `users` (`userid`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Indexes for table `items_types_links`
+-- Indexes for table `items_types2items`
 --
-ALTER TABLE `items_types_links`
-  ADD KEY `fk_items_types_links_items_id` (`item_id`),
-  ADD KEY `fk_items_types_links_items_types_id` (`link_id`);
+ALTER TABLE `items_types2items`
+  ADD KEY `fk_items_types2items_items_id` (`item_id`),
+  ADD KEY `fk_items_types2items_items_types_id` (`link_id`);
 
 --
 -- Indexes for table `items_types_steps`
@@ -1517,6 +1550,13 @@ ALTER TABLE `experiments_templates2experiments`
 ALTER TABLE `items2experiments`
   ADD KEY `fk_items2experiments_item_id` (`item_id`),
   ADD KEY `fk_items2experiments_link_id` (`link_id`);
+
+--
+-- Indexes for table `items_types2experiments`
+--
+ALTER TABLE `items_types2experiments`
+  ADD KEY `fk_items_types2experiments_item_id` (`item_id`),
+  ADD KEY `fk_items_types2experiments_link_id` (`link_id`);
 --
 -- Constraints for table `api_keys`
 --
@@ -1560,11 +1600,11 @@ ALTER TABLE `experiments_request_actions`
     ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `experiments_links`
+-- Constraints for table `experiments2items`
 --
-ALTER TABLE `experiments_links`
-  ADD CONSTRAINT `fk_experiments_links_experiments_id` FOREIGN KEY (`item_id`) REFERENCES `experiments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_experiments_links_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `experiments2items`
+  ADD CONSTRAINT `fk_experiments2items_experiments_id` FOREIGN KEY (`item_id`) REFERENCES `experiments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_experiments2items_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `experiments_revisions`
@@ -1683,11 +1723,11 @@ ALTER TABLE `items_types`
   ADD CONSTRAINT `fk_items_types_teams_id` FOREIGN KEY (`team`) REFERENCES `teams`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `items_types_links`
+-- Constraints for table `items_types2items`
 --
-ALTER TABLE `items_types_links`
-  ADD CONSTRAINT `fk_items_types_links_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_items_types_links_items_types_id` FOREIGN KEY (`item_id`) REFERENCES `items_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `items_types2items`
+  ADD CONSTRAINT `fk_items_types2items_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_items_types2items_items_types_id` FOREIGN KEY (`item_id`) REFERENCES `items_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `items_types_steps`
@@ -1802,24 +1842,24 @@ CREATE TABLE `experiments_templates_steps` (
     CONSTRAINT `fk_experiments_templates_steps_items_id` FOREIGN KEY (`item_id`) REFERENCES `experiments_templates` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
-CREATE TABLE `items_links` (
+CREATE TABLE `items2items` (
     `item_id` int(10) unsigned NOT NULL,
     `link_id` int(10) unsigned NOT NULL,
     PRIMARY KEY (`item_id`, `link_id`),
-    KEY `fk_items_links_items_id` (`item_id`),
-    KEY `fk_items_links_items_id2` (`link_id`),
-    CONSTRAINT `fk_items_links_items_id` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_items_links_items_id2` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    KEY `fk_items2items_items_id` (`item_id`),
+    KEY `fk_items2items_items_id2` (`link_id`),
+    CONSTRAINT `fk_items2items_items_id` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_items2items_items_id2` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
-CREATE TABLE `experiments_templates_links` (
+CREATE TABLE `experiments_templates2items` (
     `item_id` int(10) unsigned NOT NULL,
     `link_id` int(10) unsigned NOT NULL,
     PRIMARY KEY (`item_id`, `link_id`),
-    KEY `fk_experiments_templates_links_items_id` (`item_id`),
-    KEY `fk_experiments_templates_links_items_id2` (`link_id`),
-    CONSTRAINT `fk_experiments_templates_links_experiments_templates_id` FOREIGN KEY (`item_id`) REFERENCES `experiments_templates` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT `fk_experiments_templates_links_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    KEY `fk_experiments_templates2items_items_id` (`item_id`),
+    KEY `fk_experiments_templates2items_items_id2` (`link_id`),
+    CONSTRAINT `fk_experiments_templates2items_experiments_templates_id` FOREIGN KEY (`item_id`) REFERENCES `experiments_templates` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_experiments_templates2items_items_id` FOREIGN KEY (`link_id`) REFERENCES `items` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 
@@ -1889,6 +1929,18 @@ ALTER TABLE `items2experiments`
   ADD CONSTRAINT `fk_items2experiments_link_id`
     FOREIGN KEY (`link_id`) REFERENCES `experiments` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `items_types2experiments`
+--
+ALTER TABLE `items_types2experiments`
+  ADD CONSTRAINT `fk_items_types2experiments_item_id`
+    FOREIGN KEY (`item_id`) REFERENCES `items_types` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_items_types2experiments_link_id`
+    FOREIGN KEY (`link_id`) REFERENCES `experiments` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
 
 --
 -- Constraints for table `pin_experiments_templates2users`

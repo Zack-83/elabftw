@@ -29,6 +29,7 @@ use Elabftw\Exceptions\DatabaseErrorException;
 use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Exceptions\ResourceNotFoundException;
+use Elabftw\Factories\LinksFactory;
 use Elabftw\Interfaces\ContentParamsInterface;
 use Elabftw\Interfaces\RestInterface;
 use Elabftw\Services\AccessKeyHelper;
@@ -63,9 +64,9 @@ abstract class AbstractEntity implements RestInterface
 
     public Comments $Comments;
 
-    public ExperimentsLinks $ExperimentsLinks;
+    public AbstractExperimentsLinks $ExperimentsLinks;
 
-    public ItemsLinks $ItemsLinks;
+    public AbstractItemsLinks $ItemsLinks;
 
     public Steps $Steps;
 
@@ -108,8 +109,8 @@ abstract class AbstractEntity implements RestInterface
     {
         $this->Db = Db::getConnection();
 
-        $this->ExperimentsLinks = new ExperimentsLinks($this);
-        $this->ItemsLinks = new ItemsLinks($this);
+        $this->ExperimentsLinks = LinksFactory::getExperimentsLinks($this);
+        $this->ItemsLinks = LinksFactory::getItemsLinks($this);
         $this->Steps = new Steps($this);
         $this->Tags = new Tags($this);
         $this->Uploads = new Uploads($this);
@@ -311,6 +312,15 @@ abstract class AbstractEntity implements RestInterface
 
     public function patch(Action $action, array $params): array
     {
+        // a Review action doesn't do anything
+        if ($action === Action::Review) {
+            // clear any request action - skip for templates
+            if ($this instanceof AbstractConcreteEntity) {
+                $RequestActions = new RequestActions($this->Users, $this);
+                $RequestActions->remove(RequestableAction::Review);
+            }
+            return $this->readOne();
+        }
         // the toggle pin action doesn't require write access to the entity
         if ($action !== Action::Pin) {
             $this->canOrExplode('write');
@@ -523,7 +533,9 @@ abstract class AbstractEntity implements RestInterface
     protected function checkToggleLockPermissions(): void
     {
         $this->getPermissions();
-        if (!$this->Users->isAdmin && $this->entityData['userid'] !== $this->Users->userData['userid']) {
+        // if the entry is locked, only an admin or the locker can unlock it
+        // it is no longer necessary to be an admin or owner to lock something
+        if ($this->entityData['locked'] === 1 && (!$this->Users->isAdmin && $this->entityData['lockedby'] !== $this->Users->userData['userid'])) {
             throw new ImproperActionException(_("You don't have the rights to lock/unlock this."));
         }
     }

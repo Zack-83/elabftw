@@ -22,6 +22,7 @@ use Elabftw\Exceptions\IllegalActionException;
 use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Exceptions\ResourceNotFoundException;
 use Elabftw\Exceptions\InvalidApiSubModelException;
+use Elabftw\Factories\LinksFactory;
 use Elabftw\Import\Handler as ImportHandler;
 use Elabftw\Interfaces\RestInterface;
 use Elabftw\Make\Exports;
@@ -31,14 +32,13 @@ use Elabftw\Models\Batch;
 use Elabftw\Models\Comments;
 use Elabftw\Models\Config;
 use Elabftw\Models\ExperimentsCategories;
-use Elabftw\Models\ExperimentsLinks;
 use Elabftw\Models\ExperimentsStatus;
 use Elabftw\Models\ExtraFieldsKeys;
 use Elabftw\Models\FavTags;
 use Elabftw\Models\Idps;
+use Elabftw\Models\IdpsSources;
 use Elabftw\Models\Info;
 use Elabftw\Models\Items;
-use Elabftw\Models\ItemsLinks;
 use Elabftw\Models\ItemsStatus;
 use Elabftw\Models\ItemsTypes;
 use Elabftw\Models\Notifications\EventDeleted;
@@ -248,7 +248,8 @@ class Apiv2Controller extends AbstractApiController
             ApiEndpoint::ApiKeys => new ApiKeys($this->requester, $this->id),
             ApiEndpoint::Batch => new Batch($this->requester),
             ApiEndpoint::Config => Config::getConfig(),
-            ApiEndpoint::Idps => new Idps($this->id),
+            ApiEndpoint::Idps => new Idps($this->requester, $this->id),
+            ApiEndpoint::IdpsSources => new IdpsSources($this->requester, $this->id),
             ApiEndpoint::Import => new ImportHandler($this->requester),
             ApiEndpoint::Info => new Info(),
             ApiEndpoint::Export => new Exports($this->requester, Storage::CACHE->getStorage(), $this->id),
@@ -290,8 +291,8 @@ class Apiv2Controller extends AbstractApiController
             $Config = Config::getConfig();
             return match ($submodel) {
                 ApiSubModels::Comments => new Comments($this->Model, $this->subId),
-                ApiSubModels::ExperimentsLinks => new ExperimentsLinks($this->Model, $this->subId),
-                ApiSubModels::ItemsLinks => new ItemsLinks($this->Model, $this->subId),
+                ApiSubModels::ExperimentsLinks => LinksFactory::getExperimentsLinks($this->Model, $this->subId),
+                ApiSubModels::ItemsLinks => LinksFactory::getItemsLinks($this->Model, $this->subId),
                 ApiSubModels::RequestActions => new RequestActions($this->requester, $this->Model, $this->subId),
                 ApiSubModels::Revisions => new Revisions(
                     $this->Model,
@@ -324,7 +325,8 @@ class Apiv2Controller extends AbstractApiController
                 ApiSubModels::Notifications => new UserNotifications($this->Model, $this->subId),
                 ApiSubModels::RequestActions => new UserRequestActions($this->Model),
                 ApiSubModels::SigKeys => new SigKeys($this->requester, $this->subId),
-                ApiSubModels::Uploads => new UserUploads($this->Model, $this->subId),
+                // the uploads users/X/uploads endpoint forces the use of the requester
+                ApiSubModels::Uploads => new UserUploads($this->requester, $this->subId),
                 default => throw new InvalidApiSubModelException(ApiEndpoint::Users),
             };
         }
@@ -339,7 +341,7 @@ class Apiv2Controller extends AbstractApiController
 
     private function applyRestrictions(): void
     {
-        if (($this->Model instanceof Config || $this->Model instanceof Idps) && $this->requester->userData['is_sysadmin'] !== 1) {
+        if (($this->Model instanceof Config) && $this->requester->userData['is_sysadmin'] !== 1) {
             throw new IllegalActionException('Non sysadmin user tried to use a restricted api endpoint.');
         }
 
