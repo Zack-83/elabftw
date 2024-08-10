@@ -760,22 +760,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@teselagen/bio-parsers@npm:^0.4.18":
-  version: 0.4.18
-  resolution: "@teselagen/bio-parsers@npm:0.4.18"
+"@teselagen/bio-parsers@npm:^0.4.22":
+  version: 0.4.22
+  resolution: "@teselagen/bio-parsers@npm:0.4.22"
   dependencies:
     "@gmod/gff": "npm:^1.2.1"
     "@teselagen/range-utils": "npm:0.3.7"
-    "@teselagen/sequence-utils": "npm:0.3.24"
+    "@teselagen/sequence-utils": "npm:0.3.27"
     buffer: "npm:^6.0.3"
     bufferpack: "npm:^0.0.6"
     color: "npm:^4.2.3"
     fast-xml-parser: "npm:^4.2.5"
     fflate: "npm:^0.8.0"
-    lodash: "npm:^4.17.21"
+    lodash-es: "npm:^4.17.21"
     string_decoder: "npm:^1.3.0"
     validate.io-nonnegative-integer-array: "npm:^1.0.1"
-  checksum: 10c0/e845913a0be4e74ab06168d93cbbcc56943d48d6a04c1cd6c75c976b9aa5137717f656885fa0661e7b4fa8b3d5997ad5357a758205e6d0ee21005741705b823e
+  checksum: 10c0/3b30223a4802ed74e7bcc7059985e7acae86280f3f718254617be89ecb1bc21c439617b314dd9140283dfc04493e6f71d0d0f639c3984577c256171acae45c6a
   languageName: node
   linkType: hard
 
@@ -931,6 +931,19 @@ __metadata:
     jsondiffpatch: "npm:0.4.1"
     string-splice: "npm:^1.3.0"
   checksum: 10c0/0cb212b5936f72678e5a3dcd861fae8ab5bb6e92ebba6d2e2a7be95e1c60df8e54e41807a3a579d0f75b35cfe946576446e1cd6c31963834f37d60569aac2176
+  languageName: node
+  linkType: hard
+
+"@teselagen/sequence-utils@npm:0.3.27":
+  version: 0.3.27
+  resolution: "@teselagen/sequence-utils@npm:0.3.27"
+  dependencies:
+    "@teselagen/range-utils": "npm:0.3.7"
+    bson-objectid: "npm:^2.0.4"
+    escape-string-regexp: "npm:^5.0.0"
+    jsondiffpatch: "npm:0.4.1"
+    string-splice: "npm:^1.3.0"
+  checksum: 10c0/1950ff14b3273d40525056f2cbffef536bf7849bb9425fbc628351fd49b1058c98292321868949679bc1fd62ce2eae4f79d26441a2bdef14f709547bfb9b6c9c
   languageName: node
   linkType: hard
 
@@ -3377,7 +3390,7 @@ __metadata:
     "@fullcalendar/interaction": "npm:^6.1.15"
     "@fullcalendar/list": "npm:^6.1.15"
     "@fullcalendar/timegrid": "npm:^6.1.15"
-    "@teselagen/bio-parsers": "npm:^0.4.18"
+    "@teselagen/bio-parsers": "npm:^0.4.22"
     "@teselagen/ove": "npm:^0.4.12"
     "@types/bootstrap": "npm:^5.2.10"
     "@types/dropzone": "npm:^5.7.8"
@@ -3866,25 +3879,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-xml-parser@npm:4.3.5":
-  version: 4.3.5
-  resolution: "fast-xml-parser@npm:4.3.5"
+"fast-xml-parser@npm:^4.4.1":
+  version: 4.4.1
+  resolution: "fast-xml-parser@npm:4.4.1"
   dependencies:
     strnum: "npm:^1.0.5"
   bin:
     fxparser: src/cli/cli.js
-  checksum: 10c0/cff9a3fe03c708fa89e1f4c73b02da2816b1a8df0fd78500c21f97bfa25f56cd180308752a8b085a6e38a8050b3a75a7671d0b1ec811e732230b7c7728335c26
-  languageName: node
-  linkType: hard
-
-"fast-xml-parser@npm:^4.2.5":
-  version: 4.4.0
-  resolution: "fast-xml-parser@npm:4.4.0"
-  dependencies:
-    strnum: "npm:^1.0.5"
-  bin:
-    fxparser: src/cli/cli.js
-  checksum: 10c0/ce32fad713471a40bea67959894168f297a5dd0aba64b89a2abc71a4fec0b1ae1d49c2dd8d8719ca8beeedf477824358c8a486b360b9f3ef12abc2e355d11318
+  checksum: 10c0/7f334841fe41bfb0bf5d920904ccad09cefc4b5e61eaf4c225bf1e1bb69ee77ef2147d8942f783ee8249e154d1ca8a858e10bda78a5d78b8bed3f48dcee9bf33
   languageName: node
   linkType: hard
 
