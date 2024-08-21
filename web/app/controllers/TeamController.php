@@ -63,6 +63,7 @@ try {
             $App->Request->request->getString('subject'),
             $App->Request->request->getString('body'),
             $replyTo,
+            (bool) $App->Config->configArr['email_send_grouped'],
         );
         $App->Session->getFlashBag()->add('ok', sprintf(_('Email sent to %d users'), $sent));
     }

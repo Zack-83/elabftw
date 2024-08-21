@@ -140,6 +140,7 @@ final class Config implements RestInterface
             ('saml_lowercaseurlencoding', '0'),
             ('saml_fallback_orgid', '0'),
             ('email_domain', NULL),
+            ('email_send_grouped', '1'),
             ('saml_sync_teams', '0'),
             ('saml_sync_email_idp', '0'),
             ('support_url', 'https://github.com/elabftw/elabftw/issues'),
@@ -191,7 +192,8 @@ final class Config implements RestInterface
             ('onboarding_email_body', NULL),
             ('onboarding_email_different_for_admins', '0'),
             ('onboarding_email_admins_subject', NULL),
-            ('onboarding_email_admins_body', NULL)";
+            ('onboarding_email_admins_body', NULL),
+            ('allow_users_change_identity', '1')";
 
         $req = $this->Db->prepare($sql);
         $req->bindParam(':schema', $schema);
