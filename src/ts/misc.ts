@@ -202,10 +202,10 @@ export function notif(info: ResponseMsg): void {
   // "status" role: see WCAG2.1 4.1.3
   p.role = 'status';
   p.innerText = info.msg;
-  const result = info.res ? 'ok' : 'ko';
   const overlay = document.createElement('div');
-  overlay.setAttribute('id', 'overlay');
-  overlay.setAttribute('class', 'overlay ' + 'overlay-' + result);
+  overlay.id = 'overlay';
+  overlay.classList.add('overlay');
+  overlay.classList.add(`overlay-${info.res ? 'ok' : 'ko'}`);
   // show the overlay
   document.body.appendChild(overlay);
   // add text inside
@@ -256,8 +256,14 @@ export function makeSortableGreatAgain(): void {
     cancel: 'nonSortable',
     // do ajax request to update db with new order
     update: function() {
+      // by default, use the id attribute (https://api.jqueryui.com/sortable/#method-toArray)
+      let attribute = 'id';
+      // but for extra fields, use the data-name attribute with the name of the field
+      if ($(this).data('table') === 'extra_fields') {
+        attribute = 'data-name';
+      }
       // send the order as an array
-      const params = {table: $(this).data('table'), entity: getEntity(), ordering: $(this).sortable('toArray')};
+      const params = {table: $(this).data('table'), entity: getEntity(), ordering: $(this).sortable('toArray', {attribute: attribute})};
       fetch('app/controllers/SortableAjaxController.php', {
         method: 'POST',
         headers: {
@@ -339,8 +345,8 @@ export async function reloadElements(elementIds: string[]): Promise<void> {
  * in localStorage. The localStorage key is the value of the save-hidden data attribute.
  */
 export function adjustHiddenState(): void {
-  document.querySelectorAll('[data-save-hidden]').forEach(el => {
-    const targetElement = (el as HTMLElement).dataset.saveHidden;
+  document.querySelectorAll('[data-save-hidden]').forEach((el: HTMLElement) => {
+    const targetElement = el.dataset.saveHidden;
     // failsafe
     if (!targetElement) {
       return;
@@ -352,17 +358,17 @@ export function adjustHiddenState(): void {
     }
     const caretIcon =  button.querySelector('i');
     if (localStorage.getItem(localStorageKey) === '1') {
-      el.setAttribute('hidden', 'hidden');
-      caretIcon.classList.remove('fa-caret-down');
+      el.hidden = true;
+      caretIcon?.classList.remove('fa-caret-down');
       if (targetElement !== 'filtersDiv') {
-        caretIcon.classList.add('fa-caret-right');
+        caretIcon?.classList.add('fa-caret-right');
       }
       button.setAttribute('aria-expanded', 'false');
     // make sure to explicitly check for the value, because the key might not exist!
     } else if (localStorage.getItem(localStorageKey) === '0') {
       el.removeAttribute('hidden');
-      caretIcon.classList.remove('fa-caret-right');
-      caretIcon.classList.add('fa-caret-down');
+      caretIcon?.classList.remove('fa-caret-right');
+      caretIcon?.classList.add('fa-caret-down');
       button.setAttribute('aria-expanded', 'true');
     }
   });

@@ -11,9 +11,9 @@
         </div>
           <div class='input-group-prepend'>
             <select class='custom-select brl-none brr-none' name='teamFilter' id='teamFilter' aria-label='{{ 'Filter teams'|trans }}'>
-              <option value=''>{{ 'All teams'|trans }}</option>
+              <option value='' {{- App.Request.getScriptName|split('/')|last == 'sysconfig.php' and not App.Request.query.has('teamFilter') ? ' selected' }}>{{ 'All teams'|trans }}</option>
               {% for team in teamsArr %}
-                <option value='{{ team.id }}' {{- App.Request.query.get('teamFilter') == team.id or (App.Users.team == team.id and not App.Request.query.has('teamFilter')) ? ' selected' }}>{{ team.name }}</option>
+                <option value='{{ team.id }}' {{- App.Request.query.get('teamFilter') == team.id or (App.Users.team == team.id and not App.Request.query.has('teamFilter') and App.Request.getScriptName|split('/')|last == 'admin.php') ? ' selected' }}>{{ team.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -167,7 +167,8 @@
                 <td data-label='2FA'>{% if user.has_mfa_enabled %}<span title='{{ '2FA enabled'|trans }}'><i title='{{ '2FA enabled'|trans }}' class='fas fa-user-shield'></i></span>{% endif %}</td>
                 <td data-label='{{ 'Actions'|trans }}'>
                   {% if App.Users.userData.is_sysadmin == '1' %}
-                    <button class='btn p-2 hl-hover-gray text-center mr-1' title='{{ 'Reset user password'|trans }}' data-action='toggle-next' data-target='resetPasswordModal'>
+                    {# TODO have a modal window for this #}
+                    <button class='btn p-2 hl-hover-gray text-center mr-1' title='{{ 'Reset user password'|trans }}' data-action='toggle-next'>
                       <i class='fas fa-fw fa-key'></i>
                     </button>
                     <div hidden class='input-group'>

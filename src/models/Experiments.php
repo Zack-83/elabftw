@@ -12,12 +12,14 @@ declare(strict_types=1);
 
 namespace Elabftw\Models;
 
+use DateTimeImmutable;
 use Elabftw\Elabftw\Metadata;
 use Elabftw\Elabftw\Tools;
 use Elabftw\Enums\Action;
 use Elabftw\Enums\BasePermissions;
 use Elabftw\Enums\EntityType;
 use Elabftw\Exceptions\ImproperActionException;
+use Elabftw\Services\Filter;
 use Elabftw\Traits\InsertTagsTrait;
 use PDO;
 
@@ -28,26 +30,36 @@ class Experiments extends AbstractConcreteEntity
 {
     use InsertTagsTrait;
 
-    public function __construct(Users $users, ?int $id = null, ?bool $bypassReadPermission = null, ?bool $bypassWritePermission = null)
-    {
-        $this->entityType = EntityType::Experiments;
-        parent::__construct($users, $id, $bypassReadPermission, $bypassWritePermission);
-    }
+    public EntityType $entityType = EntityType::Experiments;
 
-    public function create(?int $template = -1, array $tags = array()): int
-    {
+    public function create(
+        ?int $template = -1,
+        ?string $title = null,
+        ?string $body = null,
+        ?DateTimeImmutable $date = null,
+        ?string $canread = null,
+        ?string $canwrite = null,
+        array $tags = array(),
+        ?int $category = null,
+        ?int $status = null,
+        ?int $customId = null,
+        ?string $metadata = null,
+        int $rating = 0,
+        bool $forceExpTpl = false,
+        string $defaultTemplateHtml = '',
+        string $defaultTemplateMd = '',
+    ): int {
+        $canread ??= BasePermissions::Team->toJson();
+        $canwrite ??= BasePermissions::User->toJson();
         $Templates = new Templates($this->Users);
-        $Teams = new Teams($this->Users, $this->Users->team);
-        $teamConfigArr = $Teams->readOne();
-        $Status = new ExperimentsStatus($Teams);
 
         // defaults
-        $title = _('Untitled');
-        $category = null;
-        $status = $Status->getDefault();
-        $body = null;
-        $canread = BasePermissions::Team->toJson();
-        $canwrite = BasePermissions::User->toJson();
+        $title = Filter::title($title ?? _('Untitled'));
+        $date ??= new DateTimeImmutable();
+        $body = Filter::body($body);
+        if (empty($body)) {
+            $body = null;
+        }
         $metadata = null;
         $contentType = AbstractEntity::CONTENT_HTML;
         if ($this->Users->userData['use_markdown'] ?? 0) {
@@ -56,7 +68,8 @@ class Experiments extends AbstractConcreteEntity
 
         // do we want template ?
         // $templateId can be a template id, or 0: common template, or -1: null body
-        if ($template > 0) {
+        // only look up the template if category has not been set. When importing a csv, we cannot discriminate between the template or category argument of create function, and use both. This will cause the following code to look up the category id as a template id
+        if ($template > 0 && $category === null) {
             $Templates->setId($template);
             $templateArr = $Templates->readOne();
             $title = $templateArr['title'];
@@ -72,7 +85,7 @@ class Experiments extends AbstractConcreteEntity
         // we don't use a proper template (use of common tpl or blank)
         if ($template === 0 || $template === -1) {
             // if admin forced template use, throw error
-            if ($teamConfigArr['force_exp_tpl'] === 1) {
+            if ($forceExpTpl) {
                 throw new ImproperActionException(_('Experiments must use a template!'));
             }
             // use user settings for permissions
@@ -81,26 +94,23 @@ class Experiments extends AbstractConcreteEntity
         }
         // load common template
         if ($template === 0) {
-            $commonTemplateKey = 'common_template';
+            $body = $defaultTemplateHtml;
             // use the markdown template if the user prefers markdown
             if ($this->Users->userData['use_markdown']) {
-                $commonTemplateKey .= '_md';
+                $body = $defaultTemplateMd;
             }
-            $body = $teamConfigArr[$commonTemplateKey];
         }
 
-        // enforce the permissions if the admin has set them
-        $canread = $teamConfigArr['do_force_canread'] === 1 ? $teamConfigArr['force_canread'] : $canread;
-        $canwrite = $teamConfigArr['do_force_canwrite'] === 1 ? $teamConfigArr['force_canwrite'] : $canwrite;
         // figure out the custom id
         $customId = $this->getNextCustomId($template);
 
         // SQL for create experiments
-        $sql = 'INSERT INTO experiments(team, title, date, body, category, status, elabid, canread, canwrite, metadata, custom_id, userid, content_type)
-            VALUES(:team, :title, CURDATE(), :body, :category, :status, :elabid, :canread, :canwrite, :metadata, :custom_id, :userid, :content_type)';
+        $sql = 'INSERT INTO experiments(team, title, date, body, category, status, elabid, canread, canwrite, metadata, custom_id, userid, content_type, rating)
+            VALUES(:team, :title, :date, :body, :category, :status, :elabid, :canread, :canwrite, :metadata, :custom_id, :userid, :content_type, :rating)';
         $req = $this->Db->prepare($sql);
         $req->bindParam(':team', $this->Users->team, PDO::PARAM_INT);
         $req->bindParam(':title', $title);
+        $req->bindValue(':date', $date->format('Y-m-d'));
         $req->bindParam(':body', $body);
         $req->bindValue(':category', $category);
         $req->bindValue(':status', $status);
@@ -111,6 +121,7 @@ class Experiments extends AbstractConcreteEntity
         $req->bindParam(':custom_id', $customId, PDO::PARAM_INT);
         $req->bindParam(':userid', $this->Users->userData['userid'], PDO::PARAM_INT);
         $req->bindParam(':content_type', $contentType, PDO::PARAM_INT);
+        $req->bindParam(':rating', $rating, PDO::PARAM_INT);
         $this->Db->execute($req);
         $newId = $this->Db->lastInsertId();
         $this->setId($newId);
