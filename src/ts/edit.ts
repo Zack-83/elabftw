@@ -136,10 +136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
 
-    // SWITCH EDITOR
-    } else if (el.matches('[data-action="switch-editor"]')) {
-      EntityC.update(entity.id, Target.ContentType, editor.switch() === 'tiny' ? '1' : '2');
-
     // GET NEXT CUSTOM ID
     } else if (el.matches('[data-action="get-next-custom-id"]')) {
       // fetch the category from the current value of select, as it might be different from the one on page load
@@ -371,6 +367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
+    // TODO move this to tinymce.ts so it can be used for templates too
     const tinyConfigForEdit = {
       images_upload_handler: imagesUploadHandler,
       // use undocumented callback function to asynchronously get the templates
@@ -387,8 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           callback(res);
         });
       },
-      // use a custom function for the save button in toolbar
-      save_onsavecallback: (): Promise<void> => updateEntityBody(),
     };
 
     tinymce.init(Object.assign(tinyConfig, tinyConfigForEdit));
