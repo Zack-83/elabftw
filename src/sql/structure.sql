@@ -573,6 +573,8 @@ CREATE TABLE `items` (
   `book_users_can_in_past` TINYINT UNSIGNED NOT NULL DEFAULT 0,
   `book_is_cancellable` TINYINT UNSIGNED NOT NULL DEFAULT 1,
   `book_cancel_minutes` INT UNSIGNED NOT NULL DEFAULT 0,
+  `book_min_start_time` INT UNSIGNED NOT NULL DEFAULT 0,
+  `book_max_end_time` INT UNSIGNED NOT NULL DEFAULT 0,
   `is_procurable` TINYINT UNSIGNED NOT NULL DEFAULT 0,
   `proc_pack_qty` MEDIUMINT UNSIGNED NOT NULL DEFAULT 0,
   `proc_price_notax` DECIMAL(10, 2) UNSIGNED NOT NULL DEFAULT 0.00,
