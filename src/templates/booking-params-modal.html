@@ -56,7 +56,7 @@
           </label>
         </div>
 
-        {# MINIMUM CANCEL NOTICE #}
+        {# CANNOT CANCEL NOTICE #}
         <div class='d-flex justify-content-between mb-2'>
           <label for='book_cancel_minutes' class='col-form-label'>{{ 'Minimum time before a slot can be cancelled (in minutes)'|trans }}</label>
           <input class='form-control col-md-4' data-trigger='blur' data-model='items/{{ Entity.id }}' data-target='book_cancel_minutes' type='number' value='{{ Entity.entityData.book_cancel_minutes }}' id='book_cancel_minutes' />
@@ -71,15 +71,14 @@
             {% set hourString = hour < 10 ? '0' ~ hour : hour %}
             {% set timeValue = hourString ~ ':00:00' %}
             {% set timeText = hourString ~ ':00' %}
-            <option value='{{ timeValue }}'>{{ timeText }}</option>
+            <option value='{{ timeValue }}' {% if timeValue == selectedTime %}selected{% endif %}>{{ timeText }}</option>
             {% endfor %}
           </select>
         </div>
         {% endmacro %}
 
-        {{ _self.timeDropdown('Earliest booking time'|trans, 'minStartTime', 'book_min_start_time', 'Entity.entityData.book_min_start_time', Entity.id) }}
-        {{ _self.timeDropdown('Latest booking time'|trans, 'maxEndTime', 'book_max_end_time', 'Entity.entityData.book_max_end_time', Entity.id) }}
-
+        {{ _self.timeDropdown('Earliest booking time'|trans, 'minStartTime', 'book_min_start_time', (Entity.entityData.book_min_start_time < 10 ? '0' ~ Entity.entityData.book_min_start_time : Entity.entityData.book_min_start_time) ~ ':00:00', Entity.id) }}
+        {{ _self.timeDropdown('Latest booking time'|trans, 'maxEndTime', 'book_max_end_time', (Entity.entityData.book_max_end_time < 10 ? '0' ~ Entity.entityData.book_max_end_time : Entity.entityData.book_max_end_time) ~ ':00:00', Entity.id) }}
       </div>
 
       <div class='modal-footer'>
