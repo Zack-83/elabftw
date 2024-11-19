@@ -246,22 +246,26 @@ class Scheduler implements RestInterface
             return;
         }
 
-        $minStartValue = (int) $this->Items->entityData['book_min_start_time'];
-        $maxEndValue = (int) $this->Items->entityData['book_max_end_time'];
-        $today = new DateTime();
-        $finalMinStartTime = (clone $today)->setTime($minStartValue, 0, 0);
-        $finalMaxEndTime = (clone $today)->setTime($maxEndValue, 0, 0);
+        if (!$start || !$end) {
+            throw new ImproperActionException(_('Start and end times must be valid DateTime objects.'));
+        }
 
-        if ($start >= $finalMinStartTime && $end <= $finalMaxEndTime) {
+        $startTime = $start->format('H:i:s');
+        $endTime = $end->format('H:i:s');
+
+        $minStartTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_min_start_time']);
+        $maxEndTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_max_end_time']);
+
+        if ($startTime >= $minStartTime && $endTime <= $maxEndTime) {
             return;
         }
 
-        // TODO: tests, creating event on another day, clean twig template boilerplate
+        // TODO: tests, clean twig
         throw new ImproperActionException(_(
             sprintf(
                 'Event cannot start earlier than %d:00, or end after %d:00. Check item\'s booking parameters for further information.',
-                $minStartValue,
-                $maxEndValue
+                $minStartTime,
+                $maxEndTime
             )
         ));
     }
