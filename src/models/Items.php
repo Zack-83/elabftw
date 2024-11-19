@@ -129,6 +129,18 @@ class Items extends AbstractConcreteEntity
         return $this->Users->isAdmin || (bool) $this->entityData['book_users_can_in_past'];
     }
 
+    /**
+     * Check that the item has no restriction hours
+     * Only Admins can bypass this restriction
+     */
+    public function canBookRestricted(): bool
+    {
+        return $this->Users->isAdmin || (
+            $this->entityData['book_min_start_time'] == 0
+            && $this->entityData['book_max_end_time'] == 0
+        );
+    }
+
     public function duplicate(bool $copyFiles = false, bool $linkToOriginal = false): int
     {
         $this->canOrExplode('read');

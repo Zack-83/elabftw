@@ -90,8 +90,12 @@ class Scheduler implements RestInterface
         $this->checkConstraints($start, $end);
         $this->checkMaxSlots();
 
+        $formattedStart = DateTime::createFromFormat(DateTime::ATOM, $start);
+        $formattedEnd = DateTime::createFromFormat(DateTime::ATOM, $end);
         // users won't be able to create an entry in the past
-        $this->isFutureOrExplode(DateTime::createFromFormat(DateTime::ATOM, $start));
+        $this->isFutureOrExplode($formattedStart);
+        // Users can't create outside of restricted booking parameters
+        $this->isInRestrictedOrExplode($formattedStart, $formattedEnd);
 
         // fix booking at midnight on monday not working. See #2765
         // we add a second so it works
@@ -228,6 +232,38 @@ class Scheduler implements RestInterface
             $Notif->create($userid);
         });
         return $this->Db->execute($req);
+    }
+
+    /**
+     * Check that the item has period restrictions
+     * Item is booked only if starting time and ending time are between the min/max defined in booking parameters.
+     */
+    public function isInRestrictedOrExplode(
+        DateTime|DateTimeImmutable|false $start,
+        DateTime|DateTimeImmutable|false $end
+    ): void {
+        if ($this->Items->canBookRestricted()) {
+            return;
+        }
+
+        $minStartValue = (int) $this->Items->entityData['book_min_start_time'];
+        $maxEndValue = (int) $this->Items->entityData['book_max_end_time'];
+        $today = new DateTime();
+        $finalMinStartTime = (clone $today)->setTime($minStartValue, 0, 0);
+        $finalMaxEndTime = (clone $today)->setTime($maxEndValue, 0, 0);
+
+        if ($start >= $finalMinStartTime && $end <= $finalMaxEndTime) {
+            return;
+        }
+
+        // TODO: tests, creating event on another day, clean twig template boilerplate
+        throw new ImproperActionException(_(
+            sprintf(
+                'Event cannot start earlier than %d:00, or end after %d:00. Check item\'s booking parameters for further information.',
+                $minStartValue,
+                $maxEndValue
+            )
+        ));
     }
 
     /**
