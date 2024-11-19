@@ -1,4 +1,3 @@
 -- schema 167
-ALTER TABLE `items` ADD `book_min_start_time` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `book_cancel_minutes`;
-ALTER TABLE `items` ADD `book_max_end_time` TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER `book_min_start_time`;
+ALTER TABLE `users` ADD `show_weekends` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 UPDATE config SET conf_value = 167 WHERE conf_name = 'schema';
