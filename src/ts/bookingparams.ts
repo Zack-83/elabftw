@@ -18,6 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateMaxEndTimeOptions() {
     const selectedMinTime = minStartTime.value;
 
+    // Allow resetting maxEndTime when minStartTime is also "00:00:00"
+    if (selectedMinTime === '00:00:00') {
+      Array.from(maxEndTime.options).forEach(option => {
+        option.disabled = false;
+      });
+      return;
+    }
+
     // update maxEndTime to minTime + 1 hour, as item can't be booked from e.g 7am to 7am
     const minTimeDate = new Date(`1970-01-01T${selectedMinTime}Z`);
     minTimeDate.setUTCHours(minTimeDate.getUTCHours() + 1);

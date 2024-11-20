@@ -235,42 +235,6 @@ class Scheduler implements RestInterface
     }
 
     /**
-     * Check that the item has period restrictions
-     * Item is booked only if starting time and ending time are between the min/max defined in booking parameters.
-     */
-    public function isInRestrictedOrExplode(
-        DateTime|DateTimeImmutable|false $start,
-        DateTime|DateTimeImmutable|false $end
-    ): void {
-        if ($this->Items->canBookRestricted()) {
-            return;
-        }
-
-        if (!$start || !$end) {
-            throw new ImproperActionException(_('Start and end times must be valid DateTime objects.'));
-        }
-
-        $startTime = $start->format('H:i:s');
-        $endTime = $end->format('H:i:s');
-
-        $minStartTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_min_start_time']);
-        $maxEndTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_max_end_time']);
-
-        if ($startTime >= $minStartTime && $endTime <= $maxEndTime) {
-            return;
-        }
-
-        // TODO: tests, clean twig
-        throw new ImproperActionException(_(
-            sprintf(
-                'Event cannot start earlier than %d:00, or end after %d:00. Check item\'s booking parameters for further information.',
-                $minStartTime,
-                $maxEndTime
-            )
-        ));
-    }
-
-    /**
      * Return an array with events for this item
      */
     private function read(): array
@@ -533,6 +497,42 @@ class Scheduler implements RestInterface
         if ($now > $date) {
             throw new ImproperActionException(_('Creation/modification of events in the past is not allowed!'));
         }
+    }
+
+    /**
+     * Check that the item has period restrictions
+     * Item is booked only if starting time and ending time are between the min/max defined in booking parameters.
+     */
+    private function isInRestrictedOrExplode(
+        DateTime|DateTimeImmutable|false $start,
+        DateTime|DateTimeImmutable|false $end
+    ): void {
+        if ($this->Items->canBookRestricted()) {
+            return;
+        }
+
+        if (!$start || !$end) {
+            throw new ImproperActionException(_('Start and end times must be valid DateTime objects.'));
+        }
+
+        $startTime = $start->format('H:i:s');
+        $endTime = $end->format('H:i:s');
+
+        $minStartTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_min_start_time']);
+        $maxEndTime = sprintf('%02d:00:00', (int) $this->Items->entityData['book_max_end_time']);
+
+        if ($startTime >= $minStartTime && $endTime <= $maxEndTime) {
+            return;
+        }
+
+        // TODO: tests, clean twig
+        throw new ImproperActionException(_(
+            sprintf(
+                'Event cannot start earlier than %d:00, or end after %d:00. Check item\'s booking parameters for further information.',
+                $minStartTime,
+                $maxEndTime
+            )
+        ));
     }
 
     /**
