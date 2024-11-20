@@ -318,6 +318,12 @@ class Scheduler implements RestInterface
         if ($new === false) {
             throw new ImproperActionException('Invalid date format received.');
         }
+        if ($column === 'end') {
+            $this->isInRestrictedOrExplode(DateTime::createFromFormat(DateTime::ATOM, $event['start']), $new);
+        }
+        if ($column === 'start') {
+            $this->isInRestrictedOrExplode($new, DateTime::createFromFormat(DateTime::ATOM, $event['end']));
+        }
         $this->isFutureOrExplode($new);
         $sql = 'UPDATE team_events SET ' . $column . ' = :new WHERE id = :id';
         $req = $this->Db->prepare($sql);
@@ -387,6 +393,7 @@ class Scheduler implements RestInterface
         $newEnd = $oldEnd->modify($delta['days'] . ' day')->modify($seconds . ' seconds'); // @phpstan-ignore-line
         $this->isFutureOrExplode($newEnd);
         $this->checkConstraints($newStart->format(DateTime::ATOM), $newEnd->format(DateTime::ATOM));
+        $this->isInRestrictedOrExplode($newStart, $newEnd);
 
         $sql = 'UPDATE team_events SET start = :start, end = :end WHERE team = :team AND id = :id';
         $req = $this->Db->prepare($sql);
@@ -413,6 +420,7 @@ class Scheduler implements RestInterface
         $newEnd = $oldEnd->modify($delta['days'] . ' day')->modify($seconds . ' seconds'); // @phpstan-ignore-line
         $this->isFutureOrExplode($newEnd);
         $this->checkConstraints($event['start'], $newEnd->format(DateTime::ATOM));
+        $this->isInRestrictedOrExplode(DateTime::createFromFormat(DateTime::ATOM, $event['start']), $newEnd);
 
         $sql = 'UPDATE team_events SET end = :end WHERE team = :team AND id = :id';
         $req = $this->Db->prepare($sql);
