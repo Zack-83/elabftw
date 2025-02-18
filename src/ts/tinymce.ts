@@ -32,6 +32,7 @@ import 'tinymce/plugins/link';
 import 'tinymce/plugins/lists';
 import 'tinymce/plugins/media';
 import 'tinymce/plugins/pagebreak';
+import 'tinymce/plugins/preview';
 import 'tinymce/plugins/save';
 import 'tinymce/plugins/searchreplace';
 import 'tinymce/plugins/table';
@@ -63,6 +64,8 @@ import { EntityType, Model } from './interfaces';
 import { getEntity, reloadElements, escapeExtendedQuery, updateEntityBody, getNewIdFromPostRequest } from './misc';
 import { Api } from './Apiv2.class';
 import { isSortable } from './TableSorting.class';
+import { MathJaxObject } from 'mathjax-full/js/components/startup';
+declare const MathJax: MathJaxObject;
 
 // AUTOSAVE
 const doneTypingInterval = 7000;  // time in ms between end of typing and save
@@ -191,8 +194,8 @@ const imagesUploadHandler = (blobInfo: TinyMCEBlobInfo) => new Promise((resolve,
 
 // options for tinymce to pass to tinymce.init()
 export function getTinymceBaseConfig(page: string): object {
-  let plugins = 'accordion advlist anchor autolink autoresize table searchreplace code fullscreen insertdatetime charmap lists save image media link pagebreak codesample template mention visualblocks visualchars emoticons';
-  let toolbar1 = 'custom-save | undo redo | styles fontsize bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | superscript subscript | bullist numlist outdent indent | forecolor backcolor | charmap emoticons adddate | codesample | link | sort-table';
+  let plugins = 'accordion advlist anchor autolink autoresize table searchreplace code fullscreen insertdatetime charmap lists save image media link pagebreak codesample template mention visualblocks visualchars emoticons preview';
+  let toolbar1 = 'custom-save preview | undo redo | styles fontsize bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | superscript subscript | bullist numlist outdent indent | forecolor backcolor | charmap emoticons adddate | codesample | link | sort-table';
   let removedMenuItems = 'newdocument, image, anchor';
   if (page === 'edit' || page === 'ucp') {
     plugins += ' autosave';
@@ -206,6 +209,12 @@ export function getTinymceBaseConfig(page: string): object {
 
   return {
     selector: '.mceditable',
+    table_default_styles: {
+      'min-width':'25%',
+      'width':'auto',
+    },
+    // The table width is changed when manipulating columns, the size of other columns is maintained.
+    table_column_resizing: 'resizetable',
     browser_spellcheck: true,
     // location of the skin directory
     skin_url: '/assets/tinymce_skins',
@@ -269,6 +278,7 @@ export function getTinymceBaseConfig(page: string): object {
       {text: 'Python', value: 'python'},
       {text: 'R', value: 'r'},
       {text: 'Ruby', value: 'ruby'},
+      {text: 'Rust', value: 'rust'},
       {text: 'SQL', value: 'sql'},
       {text: 'Tcl', value: 'tcl'},
       {text: 'VHDL', value: 'vhdl'},
@@ -320,8 +330,22 @@ export function getTinymceBaseConfig(page: string): object {
     setup: (editor: Editor): void => {
       // holds the timer setTimeout function
       let typingTimer;
-      // make the edges round
-      editor.on('init', () => editor.getContainer().className += ' rounded');
+      editor.on('init', () => {
+        // make the edges round
+        editor.getContainer().className += ' rounded';
+        // prevent skin.min.css from changing appearance of .mce-preview-body element
+        const skinNode = document.querySelector('[rel=stylesheet][href$="/skin.min.css"]') as HTMLLinkElement;
+        const skinCSS = skinNode.sheet;
+        Array.from(skinCSS.cssRules).forEach((rule, index) => {
+          if (rule instanceof CSSStyleRule) {
+            const selectors = rule.selectorText.split(',');
+            const modifiedSelectors = selectors.map((selector) => selector.trim() + ':not(.mce-preview-body *)').join(',');
+            rule.selectorText = modifiedSelectors;
+            skinCSS.deleteRule(index);
+            skinCSS.insertRule(rule.cssText, index);
+          }
+        });
+      });
       // Hook into the blur event - Finalize potential changes to images if user clicks outside of editor
       editor.on('blur', () => {
         // this will trigger the images_upload_handler event hook defined further above
@@ -466,5 +490,26 @@ export function getTinymceBaseConfig(page: string): object {
       },
     ],
     toolbar_sticky: true,
+    // render MathJax for TinyMCE preview
+    init_instance_callback: (editor) => {
+      editor.on('ExecCommand', (e) => {
+        if (e.command == 'mcePreview') {
+          // declaration as iFrame element required to avoid errors with getting srcdoc property
+          const iframe = (document.querySelector('iframe.tox-dialog__iframe') as HTMLIFrameElement);
+          if (iframe) {
+            iframe.onload = () => {
+              const tinyDiv = document.createElement('div');
+              tinyDiv.setAttribute('class', 'mce-content-body mce-preview-body');
+              iframe.contentDocument.body.childNodes.forEach((node) => {
+                tinyDiv.append(node);
+              });
+              // iframe replaced with div element because MathJax otherwise doesn't render menus properly; see #5295
+              iframe.replaceWith(tinyDiv);
+              MathJax.typesetPromise();
+            };
+          }
+        }
+      });
+    },
   };
 }

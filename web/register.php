@@ -22,7 +22,6 @@ use Symfony\Component\HttpFoundation\Response;
  * Create an account
  */
 require_once 'app/init.inc.php';
-$App->pageTitle = _('Register');
 
 /** @psalm-suppress UncaughtThrowInGlobalScope */
 $Response = new Response();
@@ -58,6 +57,7 @@ try {
     $template = 'register.html';
     $renderArr = array(
         'hideTitle' => true,
+        'pageTitle' => _('Register'),
         'passwordInputHelp' => $passwordComplexity->toHuman(),
         'passwordInputPattern' => $passwordComplexity->toPattern(),
         'privacyPolicy' => $App->Config->configArr['privacy_policy'] ?? '',
