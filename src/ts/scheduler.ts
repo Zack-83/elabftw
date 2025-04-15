@@ -67,17 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('selectBookableWarningDiv').removeAttribute('hidden');
     }
   }
-  // get the item from url and check for its booking restrictions
-  const id = params.get('item');
-  let currentItem = null;
-  let daysOfWeek = null;
-  // if (id) {
-  //   ApiC.getJson(`items/${id}`).then((res) => {
-  //     currentItem = res;
-  //     daysOfWeek = currentItem.book_weekdays_restricted;
-  //     console.log(daysOfWeek);
-  //   });
-  // }
 
   // get the start parameter from url and use that as start time if it's there
   const start = params.get('start');
@@ -143,32 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
       },
     },
+    // initialize selection & dragging/resizing event constraints
     selectConstraint: {},
     eventConstraint: {},
-    events: [],
-    // selectConstraint: function() {
-    //   const id = params.get('item');
-    //   let currentItem = null;
-    //   let daysOfWeek = null;
-    //   if (id) {
-    //     ApiC.getJson(`items/${id}`).then((res) => {
-    //       currentItem = res;
-    //       daysOfWeek = currentItem.book_weekdays_restricted;
-    //       console.log(daysOfWeek);
-    //     });
-    //   }
-    //   return {
-    //     daysOfWeek: daysOfWeek,
-    //     // startTime: currentItem.startTime,
-    //     // endTime: currentItem.endTime,
-    //     backgroundColor: '#f8d7da' // light red for blocked
-    //   };
-    // } ,
-    // eventConstraint: {
-    //   daysOfWeek: daysOfWeek, // 0=Sunday, 6=Saturday
-    //   startTime: '08:00',
-    //   endTime: '18:00'
-    // },
     initialView: layoutCheckbox.checked ? 'timelineWeek' : 'timeGridWeek',
     themeSystem: 'bootstrap',
     // i18n
@@ -306,23 +272,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // only try to render if we actually have some bookable items
   if (calendarEl.dataset.render === 'true') {
     calendar.render();
-
+    // get the item from url and check for booking restrictions
     const id = params.get('item');
     if (id) {
+      // filter in all days of the week to highlight available ones
+      const allDays = [0, 1, 2, 3, 4, 5, 6];
       ApiC.getJson(`items/${id}`).then((res) => {
-        calendar.setOption('selectConstraint', {
-          daysOfWeek: res.book_weekdays_restricted,
-          // startTime: res.book_min_start_time ?? '00:00',
-          // endTime: res.book_max_end_time ?? '24:00',
-        });
-        calendar.setOption('eventConstraint', {
-          daysOfWeek: res.book_weekdays_restricted,
-        })
-        calendar.setOption('events', [{
-          daysOfWeek: res.book_weekdays_restricted, // Sunday and Saturday
+        // light red background for blocked days
+        calendar.addEventSource([{
+          daysOfWeek: allDays.filter(d => !res.book_weekdays_restricted?.includes(d)),
           display: 'background',
-          backgroundColor: '#f8d7da' // light red for blocked
-        }])
+          backgroundColor: '#f8d7da',
+        }]);
+        // limit user selection in period of time
+        calendar.setOption('selectConstraint', {
+          daysOfWeek: res.book_weekdays_restricted ?? null,
+          startTime: res.book_min_start_time ?? '00:00',
+          endTime: res.book_max_end_time ?? '24:00',
+        });
+        // limit event dragging and resizing in these periods
+        calendar.setOption('eventConstraint', {
+          daysOfWeek: res.book_weekdays_restricted ?? null,
+          startTime: res.book_min_start_time ?? '00:00',
+          endTime: res.book_max_end_time ?? '24:00',
+        });
       });
     }
 
