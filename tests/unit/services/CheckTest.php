@@ -82,4 +82,26 @@ class CheckTest extends \PHPUnit\Framework\TestCase
         $usergroup = Usergroup::Admin;
         $this->assertEquals(Usergroup::User, Check::usergroup($requester, $usergroup));
     }
+
+    public function testWeekdaysJson(): void
+    {
+        // sunday, monday, tuesday
+        $input = (string) json_encode(array(1, 2, 3));
+        $this->assertEquals($input, Check::weekdays($input));
+        // full week
+        $inputFull = (string) json_encode(array(0, 1, 2, 3, 4, 5, 6));
+        $this->assertEquals($inputFull, Check::weekdays($inputFull));
+        // strings
+        $this->expectException(ImproperActionException::class);
+        Check::weekdays('"what-is-up-this-week"');
+        // string in between
+        $this->expectException(ImproperActionException::class);
+        Check::weekdays((string) json_encode(array(1, 'tuesday', 3)));
+        // out of scope day
+        $this->expectException(ImproperActionException::class);
+        Check::weekdays((string) json_encode(array(1, 7)));
+        // mousslike typos
+        $this->expectException(ImproperActionException::class);
+        Check::weekdays('[1,2,3'); // broken JSON
+    }
 }

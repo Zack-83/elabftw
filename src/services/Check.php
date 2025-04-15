@@ -36,6 +36,8 @@ final class Check
     /** how deep goes the canread/canwrite json */
     private const PERMISSIONS_JSON_MAX_DEPTH = 3;
 
+    private const WEEKDAYS_JSON_MAX_DEPTH = 2;
+
     /**
      * Check the number of character of a password
      */
@@ -157,5 +159,24 @@ final class Check
             return Usergroup::User;
         }
         return $group;
+    }
+
+    // Check the weekdays json is correct. It's a json array of int from 0 to 6 (sunday to monday)
+    public static function weekdays(string $weekdays): string
+    {
+        try {
+            $decoded = json_decode($weekdays, true, self::WEEKDAYS_JSON_MAX_DEPTH, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new ImproperActionException(sprintf('%s: The weekdays parameter is wrong.', $weekdays));
+        }
+        if (!is_array($decoded)) {
+            throw new ImproperActionException('The weekdays parameter must be a JSON array.');
+        }
+        foreach ($decoded as $day) {
+            if (!is_int($day) || $day < 0 || $day > 6) {
+                throw new ImproperActionException("Invalid weekday value: {$day}. Must be an integer between 0 and 6.");
+            }
+        }
+        return $weekdays;
     }
 }

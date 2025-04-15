@@ -73,6 +73,11 @@ class ContentParams implements ContentParamsInterface
         return Filter::toBinary($this->content);
     }
 
+    protected function getCalendarJson(): string
+    {
+        return Check::weekdays($this->asString());
+    }
+
     protected function getCanJson(): string
     {
         return Check::visibility($this->asString());
