@@ -75,33 +75,39 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedDate = new Date(decodeURIComponent(start)).valueOf();
   }
 
-  // if no bookable items, return
-  const alertEl = document.querySelector('div[role="status"].alert-warning');
-  if (alertEl) return;
   // bind to the element #scheduler
   const calendarEl: HTMLElement = document.getElementById('scheduler');
+  if (!calendarEl) {
+    return;
+  }
 
-  function buildQueryString(): string {
-    const newParams = new URLSearchParams();
-    let selectedItem = '';
-    // filter by resource
+  // remove existing params to build new event sources for the calendar
+  function buildEventSourcesUrl(): string {
+    ['item', 'cat', 'eventOwner'].forEach((param) => params.delete(param));
     const itemSelect = document.getElementById('itemSelect') as HTMLSelectElement;
-    if (itemSelect && itemSelect.value && itemSelect.value !== 'all') {
-      selectedItem = itemSelect.value;
-    }
-    // filter by category
     const catSelect = document.getElementById('schedulerSelectCat') as HTMLSelectElement;
-    if (catSelect && catSelect.value) {
-      newParams.set('cat', catSelect.value);
+    const ownerInput = document.getElementById('eventOwnerSelect') as HTMLInputElement;
+
+    if (itemSelect?.value) {
+      params.set('item', itemSelect.value);
     }
-    // filter by owner
-    const eventOwnerInput = document.getElementById('eventOwnerSelect') as HTMLInputElement;
-    if (eventOwnerInput && eventOwnerInput.value.trim()) {
-      const ownerId = eventOwnerInput.value.trim().split(' ')[0];
-      newParams.set('eventOwner', ownerId);
+    if (catSelect?.value) {
+      params.set('cat', catSelect.value);
     }
-    const query = newParams.toString();
-    return `api/v2/events/${selectedItem}${query ? '?' + query : ''}`;
+    if (ownerInput?.value.trim()) {
+      const ownerId = ownerInput.value.trim().split(' ')[0];
+      params.set('eventOwner', ownerId);
+    }
+    return `api/v2/events?${params.toString()}`;
+  }
+  // refresh calendar when the event source is updated
+  function reloadCalendarEvents(): void {
+    const newQuery = buildEventSourcesUrl();
+    calendar.removeAllEventSources();
+    calendar.addEventSource({ url: newQuery });
+    calendar.refetchEvents();
+    // keep url in sync
+    window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`);
   }
 
   let eventBackgroundColor = 'a9a9a9';
@@ -157,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // load the events as JSON
     eventSources: [
       {
-        url: buildQueryString(),
+        url: buildEventSourcesUrl(),
       },
     ],
     // first day is monday
@@ -366,36 +372,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     // FILTER OWNER
     } else if (el.matches('[data-action="filter-owner"]')) {
-      const newQuery = buildQueryString();
-      calendar.removeAllEventSources();
-      calendar.addEventSource({
-        url: newQuery,
-      });
-      calendar.refetchEvents();
+      reloadCalendarEvents();
     }
   });
 
   ['schedulerSelectCat', 'itemSelect'].forEach(id => {
-    const el = document.getElementById(id) as HTMLSelectElement;
-    if (el) {
-      const ts = new TomSelect(`#${id}`, {
+    if (document.getElementById(id) as HTMLSelectElement) {
+      new TomSelect(`#${id}`, {
         plugins: ['dropdown_input', 'remove_button'],
-      });
-      ts.on('change', () => {
-        if (id === 'schedulerSelectCat') {
-          const newQuery = buildQueryString();
-          calendar.removeAllEventSources();
-          calendar.addEventSource({ url: newQuery });
-          calendar.refetchEvents();
-        } else {
-          // if an item is selected, redirect to edit mode with its id
-          const params = new URLSearchParams();
-          if (el.value) {
-            params.set('item', el.value);
+        onItemRemove() {
+          if (id === 'itemSelect') {
+            window.location.replace('scheduler.php?');
+            reloadCalendarEvents();
           }
-          params.set('start', calendar.view.activeStart.toISOString());
-          window.location.replace(`scheduler.php?${params.toString()}`);
-        }
+        },
+        onChange: reloadCalendarEvents,
       });
     }
   });

@@ -41,11 +41,15 @@ final class Scheduler extends AbstractRest
 
     public const string EVENT_END = '2037-31-12T00:00:00+00:00';
 
-    private const int GRACE_PERIOD = 5;
+    private const int GRACE_PERIOD_MINUTES = 5;
 
     private string $start = self::EVENT_START;
 
     private string $end = self::EVENT_END;
+
+    private array $filterSqlParts = array();
+
+    private array $filterBindings = array();
 
     public function __construct(
         public Items $Items,
@@ -134,11 +138,10 @@ final class Scheduler extends AbstractRest
     public function readAll(?QueryParamsInterface $queryParams = null): array
     {
         // prepare filters for the scheduler view
-        $category = 0;
-        $ownerId = 0;
         if ($queryParams !== null) {
-            $category = $queryParams->getQuery()->getInt('cat');
-            $ownerId = $queryParams->getQuery()->getInt('eventOwner');
+            $this->appendFilterSql(column: 'items.category', paramName: 'category', value: $queryParams->getQuery()->getInt('cat'));
+            $this->appendFilterSql(column: 'team_events.userid', paramName: 'ownerid', value: $queryParams->getQuery()->getInt('eventOwner'));
+            $this->appendFilterSql(column: 'items.id', paramName: 'itemid', value: $queryParams->getQuery()->getInt('item'));
         }
         // the title of the event is title + Firstname Lastname of the user who booked it
         $sql = sprintf(
@@ -175,19 +178,15 @@ final class Scheduler extends AbstractRest
                 -- events.start <= range.end and events.end >= range.start
                 AND team_events.start <= :end
                 AND team_events.end >= :start
-                %s %s",
-            $category > 0 ? 'AND items.category = :category' : '',
-            $ownerId > 0 ? 'AND team_events.userid = :ownerid' : ''
+                %s",
+            implode(' ', $this->filterSqlParts)
         );
         $req = $this->Db->prepare($sql);
         $req->bindParam(':team', $this->Items->Users->userData['team'], PDO::PARAM_INT);
         $req->bindValue(':start', $this->normalizeDate($this->start));
         $req->bindValue(':end', $this->normalizeDate($this->end, true));
-        if ($category > 0) {
-            $req->bindParam(':category', $category, PDO::PARAM_INT);
-        }
-        if ($ownerId > 0) {
-            $req->bindParam(':ownerid', $ownerId, PDO::PARAM_INT);
+        foreach ($this->filterBindings as $param => $value) {
+            $req->bindValue(":$param", $value, PDO::PARAM_INT);
         }
         $this->Db->execute($req);
         return $req->fetchAll();
@@ -211,6 +210,17 @@ final class Scheduler extends AbstractRest
         return $this->readOne();
     }
 
+    // checks if actions can be performed on an event
+    public function isEditableOrExplode(DateTimeImmutable $date): void
+    {
+        $now = new DateTimeImmutable();
+        $diff = ($now->getTimestamp() - $date->getTimestamp()) / 60;
+        if ($diff <= self::GRACE_PERIOD_MINUTES && !$this->Items->Users->isAdmin) {
+            throw new ImproperActionException(sprintf(_('Cannot delete an event within %d minutes after its creation.'), self::GRACE_PERIOD_MINUTES));
+        }
+        $this->isFutureOrExplode($date);
+    }
+
     /**
      * Remove an event
      */
@@ -220,15 +230,8 @@ final class Scheduler extends AbstractRest
         $this->canWriteOrExplode();
         $event = $this->readOne();
         $eventCreatedAt = new DateTimeImmutable($event['created_at']);
-        $this->isFutureOrExplode($eventCreatedAt);
-        // grace period (minutes) to prevent deleting right after the creation
+        $this->isEditableOrExplode($eventCreatedAt);
         $now = new DateTimeImmutable();
-        if ($now > $eventCreatedAt) {
-            $diff = ($now->getTimestamp() - $eventCreatedAt->getTimestamp()) / 60;
-            if ($diff <= self::GRACE_PERIOD && !$this->Items->Users->isAdmin) {
-                throw new ImproperActionException(sprintf(_('Cannot delete an event within %d minutes after its creation.'), self::GRACE_PERIOD));
-            }
-        }
         if ($event['book_is_cancellable'] === 0 && !$this->Items->Users->isAdmin) {
             throw new ImproperActionException(_('Event cancellation is not permitted.'));
         }
@@ -511,7 +514,7 @@ final class Scheduler extends AbstractRest
         }
         $now = new DateTime();
         if ($now > $date) {
-            throw new ImproperActionException(_('Creation/modification/deletion of events in the past is not allowed!'));
+            throw new ImproperActionException(_('Creation/modification of events in the past is not allowed!'));
         }
     }
 
@@ -557,6 +560,14 @@ final class Scheduler extends AbstractRest
     {
         if ($this->canWrite() === false) {
             throw new ImproperActionException(Tools::error(true));
+        }
+    }
+
+    private function appendFilterSql(string $column, string $paramName, int $value): void
+    {
+        if ($value > 0) {
+            $this->filterSqlParts[] = "AND $column = :$paramName";
+            $this->filterBindings[$paramName] = $value;
         }
     }
 }
