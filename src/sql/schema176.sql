@@ -1,4 +1,4 @@
--- schema 175
+-- schema 176
 ALTER TABLE `items`
     ADD `book_weekdays_restricted` JSON DEFAULT NULL AFTER `book_cancel_minutes`,
     ADD `book_min_start_time` TIME DEFAULT NULL AFTER `book_weekdays_restricted`,
