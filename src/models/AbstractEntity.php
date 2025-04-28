@@ -99,7 +99,7 @@ abstract class AbstractEntity extends AbstractRest
     // inserted in sql
     private string $extendedFilter = '';
 
-    public function __construct(public Users $Users, ?int $id = null, public ?bool $bypassReadPermission = false, public ?bool $bypassWritePermission = false)
+    public function __construct(public Users $Users, public ?int $id = null, public ?bool $bypassReadPermission = false, public ?bool $bypassWritePermission = false)
     {
         parent::__construct();
 
@@ -112,8 +112,9 @@ abstract class AbstractEntity extends AbstractRest
         $this->TeamGroups = new TeamGroups($this->Users);
         $this->Pins = new Pins($this);
         $this->ExclusiveEditMode = new ExclusiveEditMode($this);
+        // perform check here once instead of in canreadorexplode to avoid making the same query over and over by child entities
+        $this->isReadOnly = $this->ExclusiveEditMode->isActive();
         $this->setId($id);
-        $this->ExclusiveEditMode->manage();
     }
 
     abstract public function create(
@@ -371,7 +372,7 @@ abstract class AbstractEntity extends AbstractRest
                     }
                 }
             )(),
-            Action::ExclusiveEditMode => $this->ExclusiveEditMode->toggle(),
+            Action::RemoveExclusiveEditMode => $this->ExclusiveEditMode->destroy(),
             default => throw new ImproperActionException('Invalid action parameter.'),
         };
         return $this->readOne();
@@ -410,7 +411,10 @@ abstract class AbstractEntity extends AbstractRest
         $permissions = $this->getPermissions();
 
         // READ ONLY?
-        if ($permissions['read'] && !$permissions['write']) {
+        if (
+            ($permissions['read'] && !$permissions['write'])
+            || (array_key_exists('locked', $this->entityData) && $this->entityData['locked'] === 1)
+        ) {
             $this->isReadOnly = true;
         }
 

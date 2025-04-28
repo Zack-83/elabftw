@@ -21,7 +21,6 @@ use Elabftw\Enums\Meaning;
 use Elabftw\Enums\Orderby;
 use Elabftw\Enums\RequestableAction;
 use Elabftw\Enums\Sort;
-use Elabftw\Exceptions\ImproperActionException;
 use Elabftw\Interfaces\ControllerInterface;
 use Elabftw\Models\AbstractConcreteEntity;
 use Elabftw\Models\AbstractEntity;
@@ -44,10 +43,6 @@ use Elabftw\Services\AccessKeyHelper;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Override;
-
-use function array_filter;
-
-use const ARRAY_FILTER_USE_KEY;
 
 /**
  * For displaying an entity in show, view or edit mode
@@ -79,12 +74,7 @@ abstract class AbstractEntityController implements ControllerInterface
         $this->visibilityArr = $PermissionsHelper->getAssociativeArray();
         $this->classificationArr = Classification::getAssociativeArray();
         $this->meaningArr = Meaning::getAssociativeArray();
-        // exclude exclusive edit mode removal action
-        $this->requestableActionArr = array_filter(
-            RequestableAction::getAssociativeArray(),
-            fn(int $key): bool => $key !== RequestableAction::RemoveExclusiveEditMode->value,
-            ARRAY_FILTER_USE_KEY,
-        );
+        $this->requestableActionArr = RequestableAction::getAssociativeArray();
         $this->currencyArr = Currency::getAssociativeArray();
         $this->scopedTeamgroupsArr = $TeamGroups->readScopedTeamgroups();
         $Templates = new Templates($this->Entity->Users);
@@ -92,7 +82,6 @@ abstract class AbstractEntityController implements ControllerInterface
         if ($App->Request->query->has('archived') && $Entity instanceof AbstractConcreteEntity) {
             $Entity->Uploads->includeArchived = true;
         }
-
     }
 
     #[Override]
@@ -134,6 +123,7 @@ abstract class AbstractEntityController implements ControllerInterface
             limit: $this->App->Users->userData['limit_nb'],
             orderby: $orderBy,
             sort: Sort::tryFrom($this->App->Users->userData['sort']) ?? Sort::Desc,
+            skipOrderPinned: $this->App->Request->query->getBoolean('skip_pinned'),
         );
         $itemsArr = $this->Entity->readShow($DisplayParams);
 
@@ -191,8 +181,6 @@ abstract class AbstractEntityController implements ControllerInterface
      */
     protected function view(): Response
     {
-        // by default the id is taken from the URL
-        $id = $this->App->Request->query->getInt('id');
         // but if we have an access_key we might be able to bypass read permissions
         if ($this->App->Request->query->has('access_key') && $this->App->Request->query->get('access_key') !== ($this->Entity->entityData['access_key'] ?? '')) {
             // for that we fetch the id not from the id param but from the access_key, so we will get a valid id that corresponds to an entity
@@ -200,9 +188,9 @@ abstract class AbstractEntityController implements ControllerInterface
             $id = (new AccessKeyHelper($this->Entity))->getIdFromAccessKey($this->App->Request->query->getString('access_key'));
             if ($id > 0) {
                 $this->Entity->bypassReadPermission = true;
+                $this->Entity->setId($id);
             }
         }
-        $this->Entity->setId($id);
 
         // the items categoryArr for add link input
         $ItemsTypes = new ItemsTypes($this->App->Users);
@@ -252,19 +240,20 @@ abstract class AbstractEntityController implements ControllerInterface
      */
     protected function edit(): Response
     {
-        $this->Entity->setId($this->App->Request->query->getInt('id'));
         // check permissions
         $this->Entity->canOrExplode('write');
-        // a locked entity cannot be edited
-        if ($this->Entity->entityData['locked']) {
-            throw new ImproperActionException(_('This item is locked. You cannot edit it!'));
-        }
-
         // exclusive edit mode
-        $redirectResponse = $this->Entity->ExclusiveEditMode->gatekeeper();
-        if ($redirectResponse instanceof RedirectResponse) {
-            return ($redirectResponse);
+        if ($this->Entity->isReadOnly) {
+            /** @psalm-suppress PossiblyNullArgument */
+            return new RedirectResponse(sprintf(
+                '%s%sid=%d',
+                $this->Entity->entityType->toPage(),
+                '?mode=view&',
+                $this->Entity->id,
+            ), Response::HTTP_SEE_OTHER); // 303
         }
+        // all entities are in exclusive edit mode as of march 2025. See #5568
+        $this->Entity->ExclusiveEditMode->activate();
 
         // last modifier name
         $lastModifierFullname = '';
@@ -321,7 +310,6 @@ abstract class AbstractEntityController implements ControllerInterface
 
     protected function changelog(): Response
     {
-        $this->Entity->setId($this->App->Request->query->getInt('id'));
         // check permissions
         $this->Entity->canOrExplode('read');
 
